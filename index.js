@@ -44,6 +44,7 @@ function adapter(uri, opts){
   var socket = opts.socket;
   var host = opts.host || '127.0.0.1';
   var port = Number(opts.port || 6379);
+  var password = opts.password;
   var pub = opts.pubClient;
   var sub = opts.subClient;
   var data = opts.dataClient;
@@ -51,11 +52,21 @@ function adapter(uri, opts){
   var node = opts.node || false; // Each instance is given a different name to track the ids written by that instance
 
   // init clients if needed
-  if (!pub) pub = socket ? redis(socket) : redis(port, host);
-  if (!sub) sub = socket
-    ? redis(socket, { detect_buffers: true })
-    : redis(port, host, {detect_buffers: true});
-  if (!data) data = socket ? redis(socket) : redis(port, host);
+  if (password){
+    // when redis is password protected
+    if (!pub) pub = socket ? redis(socket) : redis(port, host, { auth_pass: password });
+    if (!sub) sub = socket
+      ? redis(socket, { detect_buffers: true })
+      : redis(port, host, {detect_buffers: true, auth_pass: password});
+    if (!data) data = socket ? redis(socket) : redis(port, host, { auth_pass: password });
+  } else {
+    // for redis without password
+    if (!pub) pub = socket ? redis(socket) : redis(port, host);
+    if (!sub) sub = socket
+      ? redis(socket, { detect_buffers: true })
+      : redis(port, host, {detect_buffers: true});
+    if (!data) data = socket ? redis(socket) : redis(port, host);
+  }
 
 
   // this server's key
@@ -177,7 +188,7 @@ function adapter(uri, opts){
       multi.exec(fn);
     });
   };
-  
+
   /**
    * Get all clients in room.
    *
@@ -269,7 +280,7 @@ function adapter(uri, opts){
       });
     };
   };
- 
+
 
   return Redis;
 
